@@ -1,0 +1,74 @@
+body, html {
+  height: 100%;
+  margin: 0;
+  background-image: var(--portfolio-bg-image, url('../img/Fondo.jpg'));
+   background-size: cover;
+  background-position: center;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+ /* Capa oscura sobre el fondo */
+
+
+/* Contenedor principal centrado */
+.container {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Tarjeta de login */
+.card-login {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 30px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  color: #333;
+}
+
+/* Botones */
+.btn {
+  width: 100%;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+h1 {
+  color: #fff;
+  margin-bottom: 30px;
+  text-shadow: 1px 1px 5px black;
+}
+
+/* Botón estilo ChatGPT oscuro */
+.btn {
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: #2e2e2e;         /* gris oscuro */
+  color: #f1f1f1;                    /* casi blanco */
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Hover con gris más claro */
+.btn:hover {
+  background-color: #444;            /* gris intermedio */
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Efecto al hacer clic */
+.btn:active {
+  background-color: #1e1e1e;         /* más oscuro aún */
+  transform: scale(0.97);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+

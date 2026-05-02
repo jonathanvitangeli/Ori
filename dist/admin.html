@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Administración</title>
+  <!-- Google Fonts: Material Symbols -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" crossorigin src="/assets/admin-DId0Tzx6.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/supabaseClient-DfrTGPTC.js">
+  <link rel="stylesheet" crossorigin href="/assets/admin-oFXlJhhp.css">
+</head>
+<body>
+  <nav class="navbar">
+    <h1>Administrar Proyectos</h1>
+ <button onclick="window.history.back()" class="btn-volver">
+    <span class="material-symbols-outlined">arrow_back</span>
+  </button>
+  </nav>
+
+  <main>
+    <section>
+      <h2>Nuevo Proyecto</h2>
+      <form id="formulario">
+<label for="imagen" class="custom-file-label">
+  <span class="material-symbols-outlined">upload</span>
+  Elegir imágenes
+</label>
+<input type="file" id="imagen" accept="image/*" multiple required hidden />
+  <div id="previewImagenes" class="preview-imagenes"></div>
+        <textarea id="descripcion" placeholder="Título" required></textarea><br /><br />
+        <textarea id="descripcionLarga" placeholder="Descripción completa del proyecto" required></textarea><br /><br />
+        <button type="submit">Guardar</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Buscar y Editar Proyectos</h2>
+      <input type="text" id="buscador" placeholder="Buscar por descripción..." />
+      <div class="galeria" id="galeria"></div>
+    </section>
+
+    <section>
+      <h2>Configuración del Portfolio</h2>
+      <div class="site-settings">
+        <input type="text" id="siteTitle" placeholder="Título principal del portfolio" />
+
+        <label for="siteBackgroundFile" class="custom-file-label">
+          <span class="material-symbols-outlined">image</span>
+          Subir nueva imagen de fondo
+        </label>
+        <input type="file" id="siteBackgroundFile" accept="image/*" hidden />
+        <div id="siteBackgroundPreview" class="preview-imagenes"></div>
+
+        <input type="text" id="siteBackgroundUrl" placeholder="O pega URL del fondo (opcional)" />
+        <button type="button" id="btnGuardarConfiguracion">Guardar configuración</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="lightbox" class="lightbox">
+    <img id="lightboxImg" />
+    <span onclick="cerrarLightbox()" class="cerrar-lightbox">&times;</span>
+  </div>
+
+  <div id="editorProyecto" class="modal-editor">
+    <div class="editor-contenido">
+      <h2>Editar Proyecto</h2>
+      <input type="text" id="editTitulo" placeholder="Título" />
+      <textarea id="editDescripcion" placeholder="Descripción larga"></textarea>
+      <div id="editImagenes"></div>
+      <input type="file" id="editNuevasImagenes" accept="image/*" multiple /><br /><br />
+      <div id="previewEditImagenes" class="preview-imagenes"></div>
+      <button onclick="guardarEdicionProyecto()">Guardar cambios</button>
+      <button onclick="cerrarEditor()">Cancelar</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
