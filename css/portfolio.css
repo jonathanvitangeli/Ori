@@ -1,7 +1,7 @@
 body, html {
   height: 100%;
   margin: 0;
-  background-image: var(--portfolio-bg-image, url('../img/Fondo.jpg'));
+  background-image: var(--portfolio-bg-image, linear-gradient(135deg, #151515 0%, #3d4a43 55%, #111 100%));
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

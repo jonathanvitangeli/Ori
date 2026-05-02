@@ -2,15 +2,14 @@
   "name": "miruweb2.0",
   "version": "1.0.0",
   "private": true,
-  "description": "Portfolio de Miriam con Supabase",
+  "description": "Portfolio de Miriam con Neon",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.105.1"
+    "@neondatabase/serverless": "^1.0.1"
   },
   "devDependencies": {
     "vite": "^5.0.0"
