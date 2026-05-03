@@ -7,7 +7,6 @@ let imagenesPendientesEdicion = [];
 let fondoActualUrl = '';
 let fondoPendienteDataUrl = '';
 const SITE_CONFIG_ID = 1;
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '123';
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!sessionStorage.getItem('isAdmin')) {
@@ -211,7 +210,7 @@ async function eliminar(id) {
   const pass = prompt('Para eliminar este proyecto, ingresa la contraseña de administrador:');
   if (!pass) return;
 
-  if (pass !== ADMIN_PASSWORD) {
+  if (!(await validarPasswordAdmin(pass))) {
     alert('Contraseña incorrecta');
     return;
   }
@@ -245,6 +244,21 @@ window.volverAlInicio = volverAlInicio;
 window.abrirEditor = abrirEditor;
 window.eliminar = eliminar;
 window.verDetalle = verDetalle;
+
+async function validarPasswordAdmin(password) {
+  try {
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    const result = await response.json();
+    return response.ok && result.ok === true;
+  } catch (error) {
+    console.error('Error validando administrador:', error);
+    return false;
+  }
+}
 
 // ================== Editor ======================
 

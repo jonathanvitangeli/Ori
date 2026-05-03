@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use('/api/site-config', async (req, res) => {
             await handleSiteConfig(req, res, sql)
           })
+
+          server.middlewares.use('/api/auth', async (req, res) => {
+            await handleAuth(req, res, sql)
+          })
         }
       }
     ],
@@ -40,6 +44,28 @@ export default defineConfig(({ mode }) => {
     }
   }
 })
+
+async function handleAuth(req, res, sql) {
+  try {
+    await ensureReady(sql)
+
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { error: 'Metodo no permitido' })
+      return
+    }
+
+    const body = await readJsonBody(req)
+    const rows = await sql`
+      SELECT admin_password
+      FROM site_config
+      WHERE id = 1
+    `
+    const expectedPassword = rows[0]?.admin_password || '123'
+    sendJson(res, 200, { ok: String(body?.password || '') === String(expectedPassword) })
+  } catch (error) {
+    sendJson(res, 500, { error: error.message })
+  }
+}
 
 async function handleProyectos(req, res, sql) {
   try {
@@ -183,12 +209,20 @@ async function ensureReady(sql) {
 
   await sql`ALTER TABLE site_config ADD COLUMN IF NOT EXISTS portfolio_title TEXT`
   await sql`ALTER TABLE site_config ADD COLUMN IF NOT EXISTS portfolio_background_url TEXT`
+  await sql`ALTER TABLE site_config ADD COLUMN IF NOT EXISTS admin_password TEXT DEFAULT '123'`
   await sql`ALTER TABLE site_config ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`
+  await sql`ALTER TABLE site_config ALTER COLUMN admin_password SET DEFAULT '123'`
 
   await sql`
     INSERT INTO site_config (id, portfolio_title)
     VALUES (1, 'Proyectos Franco')
     ON CONFLICT (id) DO NOTHING
+  `
+
+  await sql`
+    UPDATE site_config
+    SET admin_password = '123'
+    WHERE id = 1 AND admin_password IS NULL
   `
 }
 

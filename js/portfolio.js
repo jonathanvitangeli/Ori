@@ -1,7 +1,6 @@
 import { supabase } from './supabaseClient.js';
 
 const SITE_CONFIG_ID = 1;
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '123';
 
 async function cargarConfiguracionSitio() {
   try {
@@ -95,13 +94,28 @@ async function solicitarLoginAdmin() {
     return;
   }
 
-  if (password === ADMIN_PASSWORD) {
+  if (await validarPasswordAdmin(password)) {
     sessionStorage.setItem('isAdmin', 'true');
     window.location.href = '/admin.html';
     return;
   }
 
   alert('Contraseña incorrecta');
+}
+
+async function validarPasswordAdmin(password) {
+  try {
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    const result = await response.json();
+    return response.ok && result.ok === true;
+  } catch (error) {
+    console.error('Error validando administrador:', error);
+    return false;
+  }
 }
 
 function verDetalle(id) {

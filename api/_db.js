@@ -46,12 +46,20 @@ async function ensureSchema() {
 
   await db`ALTER TABLE site_config ADD COLUMN IF NOT EXISTS portfolio_title TEXT`;
   await db`ALTER TABLE site_config ADD COLUMN IF NOT EXISTS portfolio_background_url TEXT`;
+  await db`ALTER TABLE site_config ADD COLUMN IF NOT EXISTS admin_password TEXT DEFAULT '123'`;
   await db`ALTER TABLE site_config ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`;
+  await db`ALTER TABLE site_config ALTER COLUMN admin_password SET DEFAULT '123'`;
 
   await db`
     INSERT INTO site_config (id, portfolio_title)
     VALUES (1, 'Proyectos Franco')
     ON CONFLICT (id) DO NOTHING
+  `;
+
+  await db`
+    UPDATE site_config
+    SET admin_password = '123'
+    WHERE id = 1 AND admin_password IS NULL
   `;
 }
 
