@@ -11,38 +11,62 @@
 </head>
 <body>
   <nav class="navbar">
-    <h1>Administrar Proyectos</h1>
- <button onclick="window.history.back()" class="btn-volver">
-    <span class="material-symbols-outlined">arrow_back</span>
-  </button>
+    <div class="navbar-content">
+      <button type="button" onclick="window.history.back()" class="btn-volver" aria-label="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <div>
+        <span class="panel-kicker">Panel</span>
+        <h1>Administrar Proyectos</h1>
+      </div>
+    </div>
   </nav>
 
-  <main>
-    <section>
-      <h2>Nuevo Proyecto</h2>
-      <form id="formulario">
-<label for="imagen" class="custom-file-label">
-  <span class="material-symbols-outlined">upload</span>
-  Elegir imágenes
-</label>
-<input type="file" id="imagen" accept="image/*" multiple hidden />
-  <div id="previewImagenes" class="preview-imagenes"></div>
-        <textarea id="descripcion" placeholder="Título" required></textarea><br /><br />
-        <textarea id="descripcionLarga" placeholder="Descripción completa del proyecto" required></textarea><br /><br />
-        <button type="submit">Guardar</button>
+  <main class="admin-shell">
+    <section class="admin-section project-form-section">
+      <div class="section-heading">
+        <span class="section-kicker">Contenido</span>
+        <h2>Nuevo Proyecto</h2>
+      </div>
+
+      <form id="formulario" class="admin-form">
+        <label class="field-label" for="descripcion">Titulo</label>
+        <textarea id="descripcion" class="field-control" placeholder="Titulo" required></textarea>
+
+        <label class="field-label" for="descripcionLarga">Descripcion</label>
+        <textarea id="descripcionLarga" class="field-control field-control-large" placeholder="Descripcion completa del proyecto" required></textarea>
+
+        <label for="imagen" class="custom-file-label">
+          <span class="material-symbols-outlined">upload</span>
+          Elegir imagenes
+        </label>
+        <input type="file" id="imagen" accept="image/*" multiple hidden />
+        <div id="previewImagenes" class="preview-imagenes"></div>
+
+        <button type="submit" class="primary-action">Guardar proyecto</button>
       </form>
     </section>
 
-    <section>
-      <h2>Buscar y Editar Proyectos</h2>
-      <input type="text" id="buscador" placeholder="Buscar por descripción..." />
+    <section class="admin-section project-list-section">
+      <div class="section-heading section-heading-row">
+        <div>
+          <span class="section-kicker">Galeria</span>
+          <h2>Buscar y Editar</h2>
+        </div>
+        <input type="text" id="buscador" class="search-input" placeholder="Buscar proyecto..." />
+      </div>
       <div class="galeria" id="galeria"></div>
     </section>
 
-    <section>
-      <h2>Configuración del Portfolio</h2>
+    <section class="admin-section settings-section">
+      <div class="section-heading">
+        <span class="section-kicker">Sitio</span>
+        <h2>Configuracion del Portfolio</h2>
+      </div>
+
       <div class="site-settings">
-        <input type="text" id="siteTitle" placeholder="Título principal del portfolio" />
+        <label class="field-label" for="siteTitle">Titulo principal</label>
+        <input type="text" id="siteTitle" class="field-control" placeholder="Titulo principal del portfolio" />
 
         <label for="siteBackgroundFile" class="custom-file-label">
           <span class="material-symbols-outlined">image</span>
@@ -51,8 +75,9 @@
         <input type="file" id="siteBackgroundFile" accept="image/*" hidden />
         <div id="siteBackgroundPreview" class="preview-imagenes"></div>
 
-        <input type="text" id="siteBackgroundUrl" placeholder="O pega URL del fondo (opcional)" />
-        <button type="button" id="btnGuardarConfiguracion">Guardar configuración</button>
+        <label class="field-label" for="siteBackgroundUrl">URL de fondo</label>
+        <input type="text" id="siteBackgroundUrl" class="field-control" placeholder="O pega URL del fondo (opcional)" />
+        <button type="button" id="btnGuardarConfiguracion" class="primary-action secondary-width">Guardar configuracion</button>
       </div>
     </section>
   </main>
@@ -64,14 +89,36 @@
 
   <div id="editorProyecto" class="modal-editor">
     <div class="editor-contenido">
-      <h2>Editar Proyecto</h2>
-      <input type="text" id="editTitulo" placeholder="Título" />
-      <textarea id="editDescripcion" placeholder="Descripción larga"></textarea>
-      <div id="editImagenes"></div>
-      <input type="file" id="editNuevasImagenes" accept="image/*" multiple /><br /><br />
+      <div class="editor-header">
+        <div>
+          <span class="editor-kicker">Proyecto</span>
+          <h2>Editar Proyecto</h2>
+        </div>
+        <button type="button" class="editor-close" onclick="cerrarEditor()" aria-label="Cerrar editor">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <label class="editor-label" for="editTitulo">Titulo</label>
+      <input type="text" id="editTitulo" class="editor-input" placeholder="Titulo" />
+
+      <label class="editor-label" for="editDescripcion">Descripcion</label>
+      <textarea id="editDescripcion" class="editor-textarea" placeholder="Descripcion larga"></textarea>
+
+      <div class="editor-section-title">Imagenes actuales</div>
+      <div id="editImagenes" class="editor-image-grid"></div>
+
+      <label for="editNuevasImagenes" class="custom-file-label editor-upload">
+        <span class="material-symbols-outlined">add_photo_alternate</span>
+        Agregar imagenes
+      </label>
+      <input type="file" id="editNuevasImagenes" accept="image/*" multiple hidden />
       <div id="previewEditImagenes" class="preview-imagenes"></div>
-      <button onclick="guardarEdicionProyecto()">Guardar cambios</button>
-      <button onclick="cerrarEditor()">Cancelar</button>
+
+      <div class="editor-actions">
+        <button type="button" class="btn cancelar" onclick="cerrarEditor()">Cancelar</button>
+        <button type="button" class="btn guardar" onclick="guardarEdicionProyecto()">Guardar cambios</button>
+      </div>
     </div>
   </div>
 

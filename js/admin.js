@@ -107,14 +107,35 @@ function renderizarProyectos(lista) {
     card.addEventListener('drop', handleDrop);
     card.addEventListener('dragend', handleDragEnd);
 
-    card.innerHTML = `
-      <h3>${p.descripcion}</h3>
-      <img src="${primeraImagen}" alt="Imagen del proyecto" onclick="verDetalle(${p.id})" style="cursor:pointer;">
-      <div class="acciones">
-        <span class="material-symbols-outlined edit-icon" onclick="abrirEditor(${p.id})">edit</span>
-        <span class="material-symbols-outlined delete-icon" onclick="eliminar(${p.id})">delete_forever</span>
-      </div>
-    `;
+    const titulo = document.createElement('h3');
+    titulo.textContent = p.descripcion || 'Proyecto';
+
+    const imagen = document.createElement('img');
+    imagen.src = primeraImagen;
+    imagen.alt = 'Imagen del proyecto';
+    imagen.style.cursor = 'pointer';
+    imagen.addEventListener('click', () => verDetalle(p.id));
+
+    const acciones = document.createElement('div');
+    acciones.className = 'acciones';
+
+    const editar = document.createElement('span');
+    editar.className = 'material-symbols-outlined edit-icon';
+    editar.textContent = 'edit';
+    editar.title = 'Editar proyecto';
+    editar.addEventListener('click', () => abrirEditor(p.id));
+
+    const borrar = document.createElement('span');
+    borrar.className = 'material-symbols-outlined delete-icon';
+    borrar.textContent = 'delete_forever';
+    borrar.title = 'Eliminar proyecto';
+    borrar.addEventListener('click', () => eliminar(p.id));
+
+    acciones.appendChild(editar);
+    acciones.appendChild(borrar);
+    card.appendChild(titulo);
+    card.appendChild(imagen);
+    card.appendChild(acciones);
     galeria.appendChild(card);
   });
 }
@@ -228,8 +249,12 @@ window.verDetalle = verDetalle;
 // ================== Editor ======================
 
 function abrirEditor(id) {
-  const proyecto = proyectosGlobal.find(p => p.id === id);
-  if (!proyecto) return;
+  const proyecto = proyectosGlobal.find(p => String(p.id) === String(id));
+  if (!proyecto) {
+    console.error('No se encontro el proyecto para editar:', id, proyectosGlobal);
+    alert('No se encontro el proyecto para editar. Recarga el panel e intenta de nuevo.');
+    return;
+  }
   proyectoEditando = proyecto;
   limpiarColaImagenes('edit');
   document.getElementById('editTitulo').value = proyecto.descripcion || '';
@@ -241,38 +266,44 @@ function abrirEditor(id) {
 function mostrarImagenesEditor(imagenes) {
   const cont = document.getElementById('editImagenes');
   cont.innerHTML = '';
+
+  if (!imagenes.length) {
+    cont.innerHTML = '<p class="editor-empty">Este proyecto todavia no tiene imagenes.</p>';
+    return;
+  }
+
   imagenes.forEach((url, idx) => {
     const wrapper = document.createElement('div');
-    wrapper.style = 'display:inline-block;position:relative;margin:6px;text-align:center;';
+    wrapper.className = 'editor-image-item';
 
     const img = document.createElement('img');
     img.src = url;
-    img.style = 'width:90px;height:90px;object-fit:cover;border-radius:6px;display:block;';
+    img.alt = `Imagen ${idx + 1} del proyecto`;
 
     const controls = document.createElement('div');
-    controls.style = 'display:flex;gap:6px;justify-content:center;margin-top:6px;';
+    controls.className = 'editor-image-controls';
 
     const btnLeft = document.createElement('button');
     btnLeft.type = 'button';
-    btnLeft.textContent = '◀';
+    btnLeft.innerHTML = '<span class="material-symbols-outlined">chevron_left</span>';
     btnLeft.title = 'Mover a la izquierda';
     btnLeft.disabled = idx === 0;
-    btnLeft.style = 'padding:4px 6px;border-radius:6px;cursor:pointer;';
+    btnLeft.className = 'editor-image-button';
     btnLeft.addEventListener('click', () => moverImagenEditor(idx, -1));
 
     const btnRight = document.createElement('button');
     btnRight.type = 'button';
-    btnRight.textContent = '▶';
+    btnRight.innerHTML = '<span class="material-symbols-outlined">chevron_right</span>';
     btnRight.title = 'Mover a la derecha';
     btnRight.disabled = idx === imagenes.length - 1;
-    btnRight.style = 'padding:4px 6px;border-radius:6px;cursor:pointer;';
+    btnRight.className = 'editor-image-button';
     btnRight.addEventListener('click', () => moverImagenEditor(idx, 1));
 
     const btnEliminar = document.createElement('button');
     btnEliminar.type = 'button';
-    btnEliminar.textContent = '✕';
+    btnEliminar.innerHTML = '<span class="material-symbols-outlined">delete</span>';
     btnEliminar.title = 'Eliminar imagen';
-    btnEliminar.style = 'padding:4px 6px;border-radius:6px;cursor:pointer;background:red;color:white;border:none;';
+    btnEliminar.className = 'editor-image-button danger';
     btnEliminar.addEventListener('click', () => eliminarImagenEditor(idx));
 
     controls.appendChild(btnLeft);
@@ -285,15 +316,16 @@ function mostrarImagenesEditor(imagenes) {
   });
 }
 
-
 function eliminarImagenEditor(idx) {
   if (!proyectoEditando) return;
+  if (!Array.isArray(proyectoEditando.imagenes)) proyectoEditando.imagenes = [];
   proyectoEditando.imagenes.splice(idx, 1);
   mostrarImagenesEditor(proyectoEditando.imagenes);
 }
 
 function moverImagenEditor(idx, direction) {
   if (!proyectoEditando) return;
+  if (!Array.isArray(proyectoEditando.imagenes)) proyectoEditando.imagenes = [];
   const imagenes = proyectoEditando.imagenes;
   const nuevoIdx = idx + direction;
   if (nuevoIdx < 0 || nuevoIdx >= imagenes.length) return;
@@ -400,11 +432,14 @@ function renderizarColaImagenes(tipo, contenedorId) {
   if (!contenedor) return;
 
   const cola = tipo === 'edit' ? imagenesPendientesEdicion : imagenesPendientes;
+  const usarEstiloEditor = tipo === 'edit' || tipo === 'new';
   contenedor.innerHTML = '';
 
   cola.forEach((item) => {
     const preview = document.createElement('div');
-    preview.className = 'preview-item preview-item-removable';
+    preview.className = usarEstiloEditor
+      ? 'editor-image-item queued-image-item'
+      : 'preview-item preview-item-removable';
 
     const imagen = document.createElement('img');
     imagen.alt = item.file.name;
@@ -414,18 +449,55 @@ function renderizarColaImagenes(tipo, contenedorId) {
     nombre.className = 'preview-nombre';
     nombre.textContent = item.file.name;
 
+    const controles = document.createElement('div');
+    controles.className = usarEstiloEditor ? 'editor-image-controls' : 'preview-controls';
+
+    const moverIzquierda = document.createElement('button');
+    moverIzquierda.type = 'button';
+    moverIzquierda.className = usarEstiloEditor ? 'editor-image-button' : 'preview-move';
+    moverIzquierda.innerHTML = '<span class="material-symbols-outlined">chevron_left</span>';
+    moverIzquierda.title = 'Mover a la izquierda';
+    moverIzquierda.disabled = cola.indexOf(item) === 0;
+    moverIzquierda.addEventListener('click', () => moverImagenEnCola(tipo, item.id, -1, contenedorId));
+
+    const moverDerecha = document.createElement('button');
+    moverDerecha.type = 'button';
+    moverDerecha.className = usarEstiloEditor ? 'editor-image-button' : 'preview-move';
+    moverDerecha.innerHTML = '<span class="material-symbols-outlined">chevron_right</span>';
+    moverDerecha.title = 'Mover a la derecha';
+    moverDerecha.disabled = cola.indexOf(item) === cola.length - 1;
+    moverDerecha.addEventListener('click', () => moverImagenEnCola(tipo, item.id, 1, contenedorId));
+
     const quitar = document.createElement('button');
     quitar.type = 'button';
-    quitar.className = 'preview-remove';
+    quitar.className = usarEstiloEditor ? 'editor-image-button danger' : 'preview-remove';
     quitar.setAttribute('aria-label', 'Quitar imagen');
-    quitar.textContent = 'x';
+    quitar.innerHTML = usarEstiloEditor
+      ? '<span class="material-symbols-outlined">delete</span>'
+      : 'x';
     quitar.addEventListener('click', () => quitarImagenDeCola(tipo, item.id, contenedorId));
 
+    controles.appendChild(moverIzquierda);
+    controles.appendChild(moverDerecha);
+    if (usarEstiloEditor) controles.appendChild(quitar);
+
     preview.appendChild(imagen);
-    preview.appendChild(nombre);
-    preview.appendChild(quitar);
+    if (!usarEstiloEditor) preview.appendChild(nombre);
+    preview.appendChild(controles);
+    if (!usarEstiloEditor) preview.appendChild(quitar);
     contenedor.appendChild(preview);
   });
+}
+
+function moverImagenEnCola(tipo, id, direction, contenedorId) {
+  const cola = tipo === 'edit' ? imagenesPendientesEdicion : imagenesPendientes;
+  const index = cola.findIndex((item) => item.id === id);
+  const nextIndex = index + direction;
+  if (index === -1 || nextIndex < 0 || nextIndex >= cola.length) return;
+
+  const [item] = cola.splice(index, 1);
+  cola.splice(nextIndex, 0, item);
+  renderizarColaImagenes(tipo, contenedorId);
 }
 
 function quitarImagenDeCola(tipo, id, contenedorId) {
