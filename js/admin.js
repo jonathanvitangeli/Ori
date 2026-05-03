@@ -2,6 +2,10 @@ import { supabase } from './supabaseClient.js';
 
 let proyectosGlobal = [];
 let proyectoEditando = null;
+let imagenesPendientes = [];
+let imagenesPendientesEdicion = [];
+let fondoActualUrl = '';
+let fondoPendienteDataUrl = '';
 const SITE_CONFIG_ID = 1;
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '123';
 
@@ -42,12 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const inputFondo = document.getElementById('siteBackgroundFile');
   if (inputFondo) {
-    inputFondo.addEventListener('change', () => {
+    inputFondo.addEventListener('change', async () => {
       mostrarVistaPreviaImagenes(inputFondo.files, 'siteBackgroundPreview');
       const file = inputFondo.files[0];
       if (file) {
-        const blobUrl = URL.createObjectURL(file);
-        document.documentElement.style.setProperty('--portfolio-bg-image', `url("${blobUrl}")`);
+        try {
+          fondoPendienteDataUrl = await convertirImagenADataUrlOptimizada(file);
+          aplicarFondoPortfolio(fondoPendienteDataUrl);
+        } catch (err) {
+          fondoPendienteDataUrl = '';
+          alert('Error leyendo imagen de fondo: ' + err.message);
+        }
       }
     });
   }
@@ -121,23 +130,26 @@ function filtrarProyectos() {
 async function agregarProyecto() {
   const descripcion = document.getElementById('descripcion').value.trim();
   const descripcionLarga = document.getElementById('descripcionLarga').value.trim();
-  const fileInput = document.getElementById('imagen');
 
   if (!descripcion) {
-    alert('La descripción es obligatoria');
+    alert('La descripcion es obligatoria');
+    return;
+  }
+
+  if (imagenesPendientes.length === 0) {
+    alert('Elegi al menos una imagen');
     return;
   }
 
   const imagenesUrls = [];
 
-  // Subir imágenes a Storage
-  for (const file of fileInput.files) {
-    const nombreArchivo = `${Date.now()}-${file.name}`;
+  for (const item of imagenesPendientes) {
+    const nombreArchivo = `${Date.now()}-${crypto.randomUUID()}-${item.file.name}`;
 
     try {
       const { error: uploadError } = await supabase.storage
         .from('proyectos')
-        .upload(nombreArchivo, file);
+        .upload(nombreArchivo, item.file);
 
       if (uploadError) throw uploadError;
 
@@ -153,7 +165,6 @@ async function agregarProyecto() {
     }
   }
 
-  // Guardar en base de datos
   try {
     const { error } = await supabase
       .from('proyectos')
@@ -165,9 +176,9 @@ async function agregarProyecto() {
 
     if (error) throw error;
 
-    alert('✅ Proyecto guardado correctamente');
+    alert('Proyecto guardado correctamente');
     document.getElementById('formulario').reset();
-    limpiarVistaPreviaImagenes('previewImagenes');
+    limpiarColaImagenes('new');
     cargarProyectosAdmin();
   } catch (err) {
     console.error('Error guardando proyecto:', err);
@@ -220,6 +231,7 @@ function abrirEditor(id) {
   const proyecto = proyectosGlobal.find(p => p.id === id);
   if (!proyecto) return;
   proyectoEditando = proyecto;
+  limpiarColaImagenes('edit');
   document.getElementById('editTitulo').value = proyecto.descripcion || '';
   document.getElementById('editDescripcion').value = proyecto.descripcion_larga || '';
   mostrarImagenesEditor(proyecto.imagenes || []);
@@ -295,7 +307,7 @@ function moverImagenEditor(idx, direction) {
 function cerrarEditor() {
   proyectoEditando = null;
   document.getElementById('editorProyecto').style.display = 'none';
-  limpiarVistaPreviaImagenes('previewEditImagenes');
+  limpiarColaImagenes('edit');
 }
 
 // Exponer funciones al window para onclick del HTML
@@ -307,18 +319,18 @@ async function guardarEdicionProyecto() {
   const id = proyectoEditando.id;
   const descripcion = document.getElementById('editTitulo').value.trim();
   const descripcionLarga = document.getElementById('editDescripcion').value.trim();
-  let imagenes = [...proyectoEditando.imagenes];
+  let imagenes = Array.isArray(proyectoEditando.imagenes)
+    ? [...proyectoEditando.imagenes]
+    : [];
 
-  // Subir nuevas imágenes a Storage
-  const nuevas = document.getElementById('editNuevasImagenes').files;
-  if (nuevas.length > 0) {
-    for (const file of nuevas) {
-      const nombreArchivo = `${Date.now()}-${file.name}`;
-      
+  if (imagenesPendientesEdicion.length > 0) {
+    for (const item of imagenesPendientesEdicion) {
+      const nombreArchivo = `${Date.now()}-${crypto.randomUUID()}-${item.file.name}`;
+
       try {
         const { error: uploadError } = await supabase.storage
           .from('proyectos')
-          .upload(nombreArchivo, file);
+          .upload(nombreArchivo, item.file);
 
         if (uploadError) throw uploadError;
 
@@ -335,7 +347,6 @@ async function guardarEdicionProyecto() {
     }
   }
 
-  // Actualizar en Supabase
   try {
     const { error } = await supabase
       .from('proyectos')
@@ -348,7 +359,7 @@ async function guardarEdicionProyecto() {
 
     if (error) throw error;
 
-    alert('✅ Proyecto actualizado');
+    alert('Proyecto actualizado');
     cerrarEditor();
     cargarProyectosAdmin();
   } catch (err) {
@@ -362,8 +373,76 @@ function configurarVistaPreviaImagenes(inputId, contenedorId) {
   if (!input) return;
 
   input.addEventListener('change', () => {
-    mostrarVistaPreviaImagenes(input.files, contenedorId);
+    const tipo = inputId === 'editNuevasImagenes' ? 'edit' : 'new';
+    agregarImagenesACola(input.files, tipo, contenedorId);
+    input.value = '';
   });
+}
+
+function agregarImagenesACola(files, tipo, contenedorId) {
+  if (!files || files.length === 0) return;
+
+  const cola = tipo === 'edit' ? imagenesPendientesEdicion : imagenesPendientes;
+
+  Array.from(files).forEach((file) => {
+    cola.push({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file)
+    });
+  });
+
+  renderizarColaImagenes(tipo, contenedorId);
+}
+
+function renderizarColaImagenes(tipo, contenedorId) {
+  const contenedor = document.getElementById(contenedorId);
+  if (!contenedor) return;
+
+  const cola = tipo === 'edit' ? imagenesPendientesEdicion : imagenesPendientes;
+  contenedor.innerHTML = '';
+
+  cola.forEach((item) => {
+    const preview = document.createElement('div');
+    preview.className = 'preview-item preview-item-removable';
+
+    const imagen = document.createElement('img');
+    imagen.alt = item.file.name;
+    imagen.src = item.previewUrl;
+
+    const nombre = document.createElement('span');
+    nombre.className = 'preview-nombre';
+    nombre.textContent = item.file.name;
+
+    const quitar = document.createElement('button');
+    quitar.type = 'button';
+    quitar.className = 'preview-remove';
+    quitar.setAttribute('aria-label', 'Quitar imagen');
+    quitar.textContent = 'x';
+    quitar.addEventListener('click', () => quitarImagenDeCola(tipo, item.id, contenedorId));
+
+    preview.appendChild(imagen);
+    preview.appendChild(nombre);
+    preview.appendChild(quitar);
+    contenedor.appendChild(preview);
+  });
+}
+
+function quitarImagenDeCola(tipo, id, contenedorId) {
+  const cola = tipo === 'edit' ? imagenesPendientesEdicion : imagenesPendientes;
+  const index = cola.findIndex((item) => item.id === id);
+  if (index === -1) return;
+
+  URL.revokeObjectURL(cola[index].previewUrl);
+  cola.splice(index, 1);
+  renderizarColaImagenes(tipo, contenedorId);
+}
+
+function limpiarColaImagenes(tipo) {
+  const cola = tipo === 'edit' ? imagenesPendientesEdicion : imagenesPendientes;
+  cola.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+  cola.length = 0;
+  limpiarVistaPreviaImagenes(tipo === 'edit' ? 'previewEditImagenes' : 'previewImagenes');
 }
 
 function mostrarVistaPreviaImagenes(files, contenedorId) {
@@ -374,8 +453,8 @@ function mostrarVistaPreviaImagenes(files, contenedorId) {
   if (!files || files.length === 0) return;
 
   Array.from(files).forEach((file) => {
-    const item = document.createElement('div');
-    item.className = 'preview-item';
+    const preview = document.createElement('div');
+    preview.className = 'preview-item';
 
     const imagen = document.createElement('img');
     imagen.alt = file.name;
@@ -386,9 +465,9 @@ function mostrarVistaPreviaImagenes(files, contenedorId) {
     nombre.className = 'preview-nombre';
     nombre.textContent = file.name;
 
-    item.appendChild(imagen);
-    item.appendChild(nombre);
-    contenedor.appendChild(item);
+    preview.appendChild(imagen);
+    preview.appendChild(nombre);
+    contenedor.appendChild(preview);
   });
 }
 
@@ -458,19 +537,19 @@ async function cargarConfiguracionSitio() {
   if (!inputTitulo || !inputFondoUrl) return;
 
   try {
-    const { data, error } = await supabase
-      .from('site_config')
-      .select('portfolio_title, portfolio_background_url')
-      .eq('id', SITE_CONFIG_ID)
-      .maybeSingle();
-
-    if (error) throw error;
+    const data = await obtenerConfiguracionSitio();
 
     inputTitulo.value = data?.portfolio_title || '';
-    inputFondoUrl.value = data?.portfolio_background_url || '';
-    if (data?.portfolio_background_url) {
-      const escaped = data.portfolio_background_url.replace(/"/g, '\\"');
-      document.documentElement.style.setProperty('--portfolio-bg-image', `url("${escaped}")`);
+    fondoActualUrl = data?.portfolio_background_url || '';
+    fondoPendienteDataUrl = '';
+    inputFondoUrl.value = fondoActualUrl && !fondoActualUrl.startsWith('data:')
+      ? fondoActualUrl
+      : '';
+    inputFondoUrl.placeholder = fondoActualUrl?.startsWith('data:')
+      ? 'Imagen de fondo guardada'
+      : 'O pega URL del fondo (opcional)';
+    if (fondoActualUrl) {
+      aplicarFondoPortfolio(fondoActualUrl);
     }
   } catch (err) {
     console.error('Error al cargar configuracion del sitio:', err);
@@ -483,25 +562,17 @@ async function guardarConfiguracionSitio() {
   const inputFondoArchivo = document.getElementById('siteBackgroundFile');
   if (!inputTitulo || !inputFondoUrl || !inputFondoArchivo) return;
 
-  let fondoUrl = inputFondoUrl.value.trim();
+  const fondoUrlManual = inputFondoUrl.value.trim();
+  let fondoUrl = fondoPendienteDataUrl || fondoUrlManual || fondoActualUrl;
   const archivoFondo = inputFondoArchivo.files[0];
 
-  if (archivoFondo) {
-    const nombreArchivo = `site/background-${Date.now()}-${archivoFondo.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from('proyectos')
-      .upload(nombreArchivo, archivoFondo);
-
-    if (uploadError) {
-      alert('Error subiendo imagen de fondo: ' + uploadError.message);
+  if (archivoFondo && !fondoPendienteDataUrl) {
+    try {
+      fondoUrl = await convertirImagenADataUrlOptimizada(archivoFondo);
+    } catch (err) {
+      alert('Error leyendo imagen de fondo: ' + err.message);
       return;
     }
-
-    const { data: fondoPublico } = supabase.storage
-      .from('proyectos')
-      .getPublicUrl(nombreArchivo);
-
-    fondoUrl = fondoPublico.publicUrl;
   }
 
   const payload = {
@@ -512,20 +583,83 @@ async function guardarConfiguracionSitio() {
   };
 
   try {
-    const { error } = await supabase
-      .from('site_config')
-      .upsert(payload, { onConflict: 'id' });
+    const response = await fetch('/api/site-config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
 
-    if (error) throw error;
+    if (!response.ok) throw new Error(result?.error || 'No se pudo guardar la configuracion');
 
-    inputFondoUrl.value = fondoUrl;
+    fondoActualUrl = result?.portfolio_background_url || fondoUrl;
+    fondoPendienteDataUrl = '';
+    inputFondoUrl.value = fondoActualUrl && !fondoActualUrl.startsWith('data:')
+      ? fondoActualUrl
+      : '';
+    inputFondoUrl.placeholder = fondoActualUrl?.startsWith('data:')
+      ? 'Imagen de fondo guardada'
+      : 'O pega URL del fondo (opcional)';
     inputFondoArchivo.value = '';
     limpiarVistaPreviaImagenes('siteBackgroundPreview');
-    if (fondoUrl) document.documentElement.style.setProperty('--portfolio-bg-image', `url("${fondoUrl}")`);
-    alert('✅ Configuración guardada');
+    if (fondoActualUrl) aplicarFondoPortfolio(fondoActualUrl);
+    alert('Configuracion guardada');
   } catch (err) {
     console.error('Error guardando configuracion:', err);
-    alert('Error guardando configuración: ' + err.message + '\nVerifica que exista la tabla site_config en Supabase.');
+    alert('Error guardando configuracion: ' + err.message + '\nVerifica que exista la tabla site_config en Neon.');
+  }
+}
+
+async function obtenerConfiguracionSitio() {
+  const response = await fetch('/api/site-config');
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result?.error || 'No se pudo cargar la configuracion');
+  }
+
+  return Array.isArray(result) ? result[0] : result;
+}
+
+function convertirArchivoADataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function convertirImagenADataUrlOptimizada(file) {
+  const dataUrl = await convertirArchivoADataUrl(file);
+  const imagen = await cargarImagen(dataUrl);
+  const maxLado = 1600;
+  const escala = Math.min(1, maxLado / Math.max(imagen.width, imagen.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(imagen.width * escala));
+  canvas.height = Math.max(1, Math.round(imagen.height * escala));
+
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(imagen, 0, 0, canvas.width, canvas.height);
+
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+function cargarImagen(src) {
+  return new Promise((resolve, reject) => {
+    const imagen = new Image();
+    imagen.onload = () => resolve(imagen);
+    imagen.onerror = () => reject(new Error('No se pudo preparar la imagen'));
+    imagen.src = src;
+  });
+}
+
+function aplicarFondoPortfolio(url) {
+  const escapedUrl = url.replace(/"/g, '\\"');
+  document.documentElement.style.setProperty('--portfolio-bg-image', `url("${escapedUrl}")`);
+  document.documentElement.style.backgroundImage = `url("${escapedUrl}")`;
+  if (document.body) {
+    document.body.style.backgroundImage = `url("${escapedUrl}")`;
   }
 }
 

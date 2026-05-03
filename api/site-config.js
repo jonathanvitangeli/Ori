@@ -1,8 +1,9 @@
-const { ensureSchema, json, sql } = require('./_db');
+const { ensureSchema, getSql, json } = require('./_db');
 
 module.exports = async function handler(req, res) {
   try {
     await ensureSchema();
+    const sql = getSql();
 
     if (req.method === 'GET') {
       const rows = await sql`

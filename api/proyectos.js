@@ -1,8 +1,9 @@
-const { ensureSchema, json, sql } = require('./_db');
+const { ensureSchema, getSql, json } = require('./_db');
 
 module.exports = async function handler(req, res) {
   try {
     await ensureSchema();
+    const sql = getSql();
 
     if (req.method === 'GET') {
       const rows = await sql`
@@ -17,9 +18,10 @@ module.exports = async function handler(req, res) {
       const { descripcion, descripcion_larga, descripcionLarga, imagenes = [] } = req.body || {};
       if (!descripcion) return json(res, 400, { error: 'La descripcion es obligatoria' });
 
+      const id = Date.now();
       const rows = await sql`
-        INSERT INTO proyectos (descripcion, descripcion_larga, imagenes)
-        VALUES (${descripcion}, ${descripcion_larga || descripcionLarga || null}, ${JSON.stringify(imagenes)}::jsonb)
+        INSERT INTO proyectos (id, descripcion, descripcion_larga, imagenes)
+        VALUES (${id}, ${descripcion}, ${descripcion_larga || descripcionLarga || null}, ${JSON.stringify(imagenes)}::jsonb)
         RETURNING id, descripcion, descripcion_larga, imagenes, created_at, updated_at
       `;
       return json(res, 201, rows[0]);

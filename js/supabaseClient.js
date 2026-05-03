@@ -76,7 +76,7 @@ class ApiQuery {
             })
       });
 
-      const result = response.status === 204 ? null : await response.json();
+      const result = await readJson(response);
 
       if (!response.ok) {
         return { data: null, error: new Error(result?.error || 'Error en la API') };
@@ -137,13 +137,29 @@ function getMethod(action) {
   return 'GET';
 }
 
-function getPublicUrl(path) {
-  return { data: { publicUrl: path } };
+async function readJson(response) {
+  if (response.status === 204) return null;
+
+  const contentType = response.headers.get('Content-Type') || '';
+  const text = await response.text();
+
+  if (!contentType.includes('application/json')) {
+    throw new Error('La API de Neon no devolvio JSON. Verifica DATABASE_URL y reinicia npm run dev.');
+  }
+
+  return text ? JSON.parse(text) : null;
 }
 
-async function upload(_path, file) {
+const uploadedFiles = new Map();
+
+function getPublicUrl(path) {
+  return { data: { publicUrl: uploadedFiles.get(path) || path } };
+}
+
+async function upload(path, file) {
   try {
     const dataUrl = await fileToDataUrl(file);
+    uploadedFiles.set(path, dataUrl);
     return { data: { path: dataUrl }, error: null };
   } catch (error) {
     return { data: null, error };

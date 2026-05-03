@@ -4,20 +4,26 @@ const SITE_CONFIG_ID = 1;
 
 async function cargarConfiguracionSitio() {
   try {
-    const { data, error } = await supabase
-      .from('site_config')
-      .select('portfolio_background_url')
-      .eq('id', SITE_CONFIG_ID)
-      .maybeSingle();
+    const response = await fetch('/api/site-config');
+    const result = await response.json();
+    if (!response.ok) throw new Error(result?.error || 'No se pudo cargar la configuracion');
 
-    if (error) throw error;
+    const data = Array.isArray(result) ? result[0] : result;
 
     if (data?.portfolio_background_url) {
-      const escapedUrl = data.portfolio_background_url.replace(/"/g, '\\"');
-      document.documentElement.style.setProperty('--portfolio-bg-image', `url("${escapedUrl}")`);
+      aplicarFondoPortfolio(data.portfolio_background_url);
     }
   } catch (err) {
     console.error('Error al cargar configuracion del sitio en proyecto:', err);
+  }
+}
+
+function aplicarFondoPortfolio(url) {
+  const escapedUrl = url.replace(/"/g, '\\"');
+  document.documentElement.style.setProperty('--portfolio-bg-image', `url("${escapedUrl}")`);
+  document.documentElement.style.backgroundImage = `url("${escapedUrl}")`;
+  if (document.body) {
+    document.body.style.backgroundImage = `url("${escapedUrl}")`;
   }
 }
 

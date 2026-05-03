@@ -2,7 +2,7 @@
 let listaProyectos = [];
 
 function cargarProyectos() {
-  return fetch('/data/proyectos')
+  return fetch('/api/proyectos')
     .then(res => res.json())
     .then(data => {
       listaProyectos = data;
@@ -19,7 +19,7 @@ function setProyectos(nuevaLista) {
 
 function guardarProyectosEnServidor() {
   return fetch('/api/proyectos', {
-    method: 'PUT',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(listaProyectos)
   });
